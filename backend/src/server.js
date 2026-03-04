@@ -20,7 +20,30 @@ const connectDB = require("./config/db");
 
 connectDB();
 
+app.get("/", (req, res) => {
+  res.status(200).json({
+    message: "FinTrack API is running 🚀",
+    status: "OK",
+    environment: process.env.NODE_ENV,
+    port: process.env.PORT,
+    timestamp: new Date(),
+  });
+});
+
+app.get("/health", (req, res) => {
+  res.status(200).json({
+    status: "healthy",
+    uptime: process.uptime(),
+    environment: process.env.NODE_ENV,
+    port: process.env.PORT,
+    timestamp: new Date(),
+  });
+});
+
 const PORT = process.env.PORT || 5000;
+
 app.listen(PORT, () =>
-  console.log(`🚀 Server running in ${process.env.NODE_ENV} on port ${PORT}`),
+  console.log(
+    `🚀 Server running in ${process.env.NODE_ENV} mode on port ${PORT}`,
+  ),
 );
