@@ -9,6 +9,7 @@ const dashboardRoutes = require("./routes/dashboard.routes");
 const profileRoutes = require("./routes/profile.routes");
 const appRoutes = require("./routes/app.routes");
 const incomeRoutes = require("./routes/income.routes");
+const savingRoutes = require("./routes/saving.routes");
 
 const app = express();
 
@@ -22,6 +23,7 @@ app.use("/api/dashboard", dashboardRoutes);
 app.use("/api/profile", profileRoutes);
 app.use("/api/app", appRoutes);
 app.use("/api/income", incomeRoutes);
+app.use("/api/savings", savingRoutes);
 
 app.use(errorHandler);
 

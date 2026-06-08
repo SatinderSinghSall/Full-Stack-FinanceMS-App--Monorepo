@@ -2,6 +2,7 @@ const User = require("../models/User.model");
 const Budget = require("../models/Budget.model");
 const Expense = require("../models/Expense.model");
 const Income = require("../models/Income.model");
+const Saving = require("../models/Saving.model");
 
 exports.getProfile = async (req, res) => {
   const user = await User.findById(req.userId).select("name email createdAt");
@@ -18,12 +19,17 @@ exports.getProfile = async (req, res) => {
     user: req.userId,
   });
 
+  const savingsCount = await Saving.countDocuments({
+    userId: req.userId,
+  });
+
   res.json({
     user,
     stats: {
       budgetsCount,
       expensesCount,
       incomeCount,
+      savingsCount,
     },
   });
 };
