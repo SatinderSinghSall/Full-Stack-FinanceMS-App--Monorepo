@@ -10,6 +10,7 @@ const profileRoutes = require("./routes/profile.routes");
 const appRoutes = require("./routes/app.routes");
 const incomeRoutes = require("./routes/income.routes");
 const savingRoutes = require("./routes/saving.routes");
+const subscriptionRoutes = require("./routes/subscription.routes.js");
 
 const app = express();
 
@@ -24,6 +25,7 @@ app.use("/api/profile", profileRoutes);
 app.use("/api/app", appRoutes);
 app.use("/api/income", incomeRoutes);
 app.use("/api/savings", savingRoutes);
+app.use("/api/subscriptions", subscriptionRoutes);
 
 app.use(errorHandler);
 
