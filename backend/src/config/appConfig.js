@@ -1,7 +1,7 @@
 const APP_CONFIG = {
   android: {
-    latestVersion: "2.8.4",
-    minSupportedVersion: "2.8.4",
+    latestVersion: "2.8.5",
+    minSupportedVersion: "2.8.5",
     forceUpdate: false,
     playStoreUrl:
       "https://play.google.com/store/apps/details?id=com.satinder_singh_sall.mobileapp",
