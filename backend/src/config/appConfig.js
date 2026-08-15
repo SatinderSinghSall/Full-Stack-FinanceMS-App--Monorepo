@@ -1,6 +1,6 @@
 const APP_CONFIG = {
   android: {
-    latestVersion: "2.8.5",
+    latestVersion: "3.0.0",
     minSupportedVersion: "2.8.5",
     forceUpdate: false,
     playStoreUrl:
