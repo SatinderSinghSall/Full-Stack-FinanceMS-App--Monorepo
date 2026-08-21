@@ -47,4 +47,14 @@ router.get("/subscriptions/:id", adminDataController.getSubscription);
 router.put("/subscriptions/:id", adminDataController.updateSubscription);
 router.delete("/subscriptions/:id", adminDataController.deleteSubscription);
 
+router.get("/feedbacks", adminDataController.feedbacks);
+router.get("/feedbacks/:id", adminDataController.getFeedback);
+router.put("/feedbacks/:id", adminDataController.updateFeedback);
+router.delete("/feedbacks/:id", adminDataController.deleteFeedback);
+
+router.get("/admins", adminDataController.admins);
+router.get("/admins/:id", adminDataController.getAdmin);
+router.put("/admins/:id", adminDataController.updateAdmin);
+router.delete("/admins/:id", adminDataController.deleteAdmin);
+
 module.exports = router;

@@ -6,6 +6,8 @@ const Expense = require("../models/Expense.model");
 const Income = require("../models/Income.model");
 const Saving = require("../models/Saving.model");
 const Subscription = require("../models/Subscription.model");
+const Feedback = require("../models/Feedback.model");
+const Admin = require("../models/Admin.model");
 
 const getCollection = (Model) => async (req, res) => {
   try {
@@ -1121,6 +1123,285 @@ exports.deleteSubscription = async (req, res) => {
 
 /*
 |--------------------------------------------------------------------------
+| Feedback
+|--------------------------------------------------------------------------
+*/
+
+// GET /api/admin/feedbacks/:id
+exports.getFeedback = async (req, res) => {
+  try {
+    const { id } = req.params;
+
+    const feedback = await Feedback.findById(id)
+      .populate("user", "name email")
+      .lean();
+
+    if (!feedback) {
+      return res.status(404).json({
+        success: false,
+        message: "Feedback not found",
+      });
+    }
+
+    res.json({
+      success: true,
+      data: feedback,
+    });
+  } catch (error) {
+    console.error("Admin get feedback error:", error);
+
+    res.status(500).json({
+      success: false,
+      message: "Failed to load feedback",
+    });
+  }
+};
+
+// PUT /api/admin/feedbacks/:id
+exports.updateFeedback = async (req, res) => {
+  try {
+    const { id } = req.params;
+    const { status, priority } = req.body;
+
+    const feedback = await Feedback.findById(id);
+
+    if (!feedback) {
+      return res.status(404).json({
+        success: false,
+        message: "Feedback not found",
+      });
+    }
+
+    if (status !== undefined) {
+      if (!["Pending", "In Progress", "Resolved"].includes(status)) {
+        return res.status(400).json({
+          success: false,
+          message: "Invalid status value",
+        });
+      }
+      feedback.status = status;
+    }
+
+    if (priority !== undefined) {
+      if (!["Low", "Medium", "High"].includes(priority)) {
+        return res.status(400).json({
+          success: false,
+          message: "Invalid priority value",
+        });
+      }
+      feedback.priority = priority;
+    }
+
+    await feedback.save();
+
+    res.json({
+      success: true,
+      message: "Feedback updated successfully",
+      data: feedback,
+    });
+  } catch (error) {
+    console.error("Admin update feedback error:", error);
+
+    res.status(500).json({
+      success: false,
+      message: "Failed to update feedback",
+    });
+  }
+};
+
+// DELETE /api/admin/feedbacks/:id
+exports.deleteFeedback = async (req, res) => {
+  try {
+    const { id } = req.params;
+
+    const feedback = await Feedback.findById(id).select("_id").lean();
+
+    if (!feedback) {
+      return res.status(404).json({
+        success: false,
+        message: "Feedback not found",
+      });
+    }
+
+    await Feedback.findByIdAndDelete(id);
+
+    res.json({
+      success: true,
+      message: "Feedback deleted successfully",
+      data: {
+        id: feedback._id,
+      },
+    });
+  } catch (error) {
+    console.error("Admin delete feedback error:", error);
+
+    res.status(500).json({
+      success: false,
+      message: "Failed to delete feedback",
+    });
+  }
+};
+
+/*
+|--------------------------------------------------------------------------
+| Admins (Added CRUD Operations)
+|--------------------------------------------------------------------------
+*/
+
+// GET /api/admin/admins/:id
+exports.getAdmin = async (req, res) => {
+  try {
+    const { id } = req.params;
+
+    const admin = await Admin.findById(id).select("-password").lean();
+
+    if (!admin) {
+      return res.status(404).json({
+        success: false,
+        message: "Admin not found",
+      });
+    }
+
+    res.json({
+      success: true,
+      data: admin,
+    });
+  } catch (error) {
+    console.error("Admin get admin error:", error);
+
+    res.status(500).json({
+      success: false,
+      message: "Failed to load admin",
+    });
+  }
+};
+
+// PUT /api/admin/admins/:id
+exports.updateAdmin = async (req, res) => {
+  try {
+    const { id } = req.params;
+    const { name, email, password, role, isActive } = req.body;
+
+    const admin = await Admin.findById(id).select("+password");
+
+    if (!admin) {
+      return res.status(404).json({
+        success: false,
+        message: "Admin not found",
+      });
+    }
+
+    if (name !== undefined) {
+      if (typeof name !== "string" || !name.trim()) {
+        return res.status(400).json({
+          success: false,
+          message: "Name cannot be empty",
+        });
+      }
+      admin.name = name.trim();
+    }
+
+    if (email !== undefined) {
+      if (typeof email !== "string" || !email.trim()) {
+        return res.status(400).json({
+          success: false,
+          message: "Email cannot be empty",
+        });
+      }
+      const normalizedEmail = email.trim().toLowerCase();
+      const existingAdmin = await Admin.findOne({
+        email: normalizedEmail,
+        _id: { $ne: id },
+      });
+
+      if (existingAdmin) {
+        return res.status(409).json({
+          success: false,
+          message: "Another admin already uses this email",
+        });
+      }
+      admin.email = normalizedEmail;
+    }
+
+    if (password !== undefined && password !== "") {
+      if (typeof password !== "string" || password.length < 6) {
+        return res.status(400).json({
+          success: false,
+          message: "Password must be at least 6 characters",
+        });
+      }
+      admin.password = await bcrypt.hash(password, 10);
+    }
+
+    if (role !== undefined) {
+      admin.role = role;
+    }
+
+    if (isActive !== undefined) {
+      admin.isActive = isActive;
+    }
+
+    await admin.save();
+
+    const safeAdmin = admin.toObject();
+    delete safeAdmin.password;
+
+    res.json({
+      success: true,
+      message: "Admin updated successfully",
+      data: safeAdmin,
+    });
+  } catch (error) {
+    console.error("Admin update admin error:", error);
+    res.status(500).json({
+      success: false,
+      message: "Failed to update admin",
+    });
+  }
+};
+
+// DELETE /api/admin/admins/:id
+exports.deleteAdmin = async (req, res) => {
+  try {
+    const { id } = req.params;
+
+    // Prevent admin from deleting themselves if requested (optional safety check)
+    if (req.admin && req.admin.id === id) {
+      return res.status(400).json({
+        success: false,
+        message: "You cannot delete your own admin account while logged in",
+      });
+    }
+
+    const admin = await Admin.findById(id).select("_id name email").lean();
+
+    if (!admin) {
+      return res.status(404).json({
+        success: false,
+        message: "Admin not found",
+      });
+    }
+
+    await Admin.findByIdAndDelete(id);
+
+    res.json({
+      success: true,
+      message: "Admin deleted successfully",
+      data: {
+        id: admin._id,
+      },
+    });
+  } catch (error) {
+    console.error("Admin delete admin error:", error);
+    res.status(500).json({
+      success: false,
+      message: "Failed to delete admin",
+    });
+  }
+};
+
+/*
+|--------------------------------------------------------------------------
 | Collections
 |--------------------------------------------------------------------------
 */
@@ -1131,3 +1412,5 @@ exports.expenses = getCollection(Expense);
 exports.incomes = getCollection(Income);
 exports.savings = getCollection(Saving);
 exports.subscriptions = getCollection(Subscription);
+exports.feedbacks = getCollection(Feedback);
+exports.admins = getCollection(Admin);

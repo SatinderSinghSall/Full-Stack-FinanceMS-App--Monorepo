@@ -8,6 +8,7 @@ const Expense = require("../models/Expense.model");
 const Income = require("../models/Income.model");
 const Saving = require("../models/Saving.model");
 const Subscription = require("../models/Subscription.model");
+const Feedback = require("../models/Feedback.model");
 
 const generateAdminToken = (admin) => {
   return jwt.sign(
@@ -85,148 +86,87 @@ exports.me = async (req, res) => {
 exports.dashboard = async (req, res) => {
   try {
     const [
+      admins,
       users,
       budgets,
       expenses,
       incomes,
       savings,
       subscriptions,
+      feedbacks,
       incomeTotals,
       expenseTotals,
       savingsTotals,
       expenseByCategory,
       recentExpenses,
       recentIncome,
+      recentFeedback,
     ] = await Promise.all([
-      // Collection counts
+      Admin.countDocuments(),
       User.countDocuments(),
       Budget.countDocuments(),
       Expense.countDocuments(),
       Income.countDocuments(),
       Saving.countDocuments(),
       Subscription.countDocuments(),
+      Feedback.countDocuments(),
 
-      // Total income
-      Income.aggregate([
-        {
-          $group: {
-            _id: null,
-            total: {
-              $sum: "$amount",
-            },
-          },
-        },
+      Income.aggregate([{ $group: { _id: null, total: { $sum: "$amount" } } }]),
+      Expense.aggregate([
+        { $group: { _id: null, total: { $sum: "$amount" } } },
       ]),
-
-      // Total expenses
+      Saving.aggregate([{ $group: { _id: null, total: { $sum: "$amount" } } }]),
       Expense.aggregate([
         {
           $group: {
-            _id: null,
-            total: {
-              $sum: "$amount",
-            },
+            _id: { $ifNull: ["$category", "Other"] },
+            amount: { $sum: "$amount" },
+            count: { $sum: 1 },
           },
         },
+        { $project: { _id: 0, category: "$_id", amount: 1, count: 1 } },
+        { $sort: { amount: -1 } },
       ]),
-
-      // Total savings
-      Saving.aggregate([
-        {
-          $group: {
-            _id: null,
-            total: {
-              $sum: "$amount",
-            },
-          },
-        },
-      ]),
-
-      // Expenses grouped by category
-      Expense.aggregate([
-        {
-          $group: {
-            _id: {
-              $ifNull: ["$category", "Other"],
-            },
-            amount: {
-              $sum: "$amount",
-            },
-            count: {
-              $sum: 1,
-            },
-          },
-        },
-        {
-          $project: {
-            _id: 0,
-            category: "$_id",
-            amount: 1,
-            count: 1,
-          },
-        },
-        {
-          $sort: {
-            amount: -1,
-          },
-        },
-      ]),
-
-      // Latest expenses
-      Expense.find({})
-        .sort({
-          date: -1,
-          createdAt: -1,
-        })
-        .limit(5)
-        .lean(),
-
-      // Latest income
-      Income.find({})
-        .sort({
-          date: -1,
-          createdAt: -1,
-        })
+      Expense.find({}).sort({ date: -1, createdAt: -1 }).limit(5).lean(),
+      Income.find({}).sort({ date: -1, createdAt: -1 }).limit(5).lean(),
+      Feedback.find({})
+        .populate("user", "name email")
+        .sort({ createdAt: -1 })
         .limit(5)
         .lean(),
     ]);
 
     const totalIncome = incomeTotals[0]?.total || 0;
-
     const totalExpenses = expenseTotals[0]?.total || 0;
-
     const totalSavings = savingsTotals[0]?.total || 0;
 
     res.json({
       success: true,
-
       data: {
         overview: {
+          admins,
           users,
           budgets,
           expenses,
           incomes,
           savings,
           subscriptions,
+          feedbacks,
         },
-
         financial: {
           totalIncome,
           totalExpenses,
           totalSavings,
           balance: totalIncome - totalExpenses,
         },
-
         expenseByCategory,
-
         recentExpenses,
-
         recentIncome,
+        recentFeedback,
       },
     });
   } catch (error) {
     console.error("Admin dashboard error:", error);
-
     res.status(500).json({
       success: false,
       message: "Failed to load admin dashboard",

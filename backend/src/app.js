@@ -12,6 +12,7 @@ const incomeRoutes = require("./routes/income.routes");
 const savingRoutes = require("./routes/saving.routes");
 const subscriptionRoutes = require("./routes/subscription.routes.js");
 const adminRoutes = require("./routes/admin.routes");
+const feedbackRoute = require("./routes/feedback.routes.js");
 
 const app = express();
 
@@ -28,6 +29,7 @@ app.use("/api/income", incomeRoutes);
 app.use("/api/savings", savingRoutes);
 app.use("/api/subscriptions", subscriptionRoutes);
 app.use("/api/admin", adminRoutes);
+app.use("/api/feedback", feedbackRoute);
 
 app.use(errorHandler);
 
