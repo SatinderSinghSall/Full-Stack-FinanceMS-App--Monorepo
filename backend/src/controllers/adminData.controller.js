@@ -8,6 +8,7 @@ const Saving = require("../models/Saving.model");
 const Subscription = require("../models/Subscription.model");
 const Feedback = require("../models/Feedback.model");
 const Admin = require("../models/Admin.model");
+const AppConfig = require("../models/AppConfig.model");
 
 const getCollection = (Model) => async (req, res) => {
   try {
@@ -1402,6 +1403,40 @@ exports.deleteAdmin = async (req, res) => {
 
 /*
 |--------------------------------------------------------------------------
+| App Configurations
+|--------------------------------------------------------------------------
+*/
+
+// GET /api/admin/appconfigs/:id
+exports.getAppConfig = async (req, res) => {
+  try {
+    const { id } = req.params;
+
+    const config = await AppConfig.findById(id).lean();
+
+    if (!config) {
+      return res.status(404).json({
+        success: false,
+        message: "App configuration not found",
+      });
+    }
+
+    res.json({
+      success: true,
+      data: config,
+    });
+  } catch (error) {
+    console.error("Admin get app config error:", error);
+
+    res.status(500).json({
+      success: false,
+      message: "Failed to load app configuration",
+    });
+  }
+};
+
+/*
+|--------------------------------------------------------------------------
 | Collections
 |--------------------------------------------------------------------------
 */
@@ -1414,3 +1449,4 @@ exports.savings = getCollection(Saving);
 exports.subscriptions = getCollection(Subscription);
 exports.feedbacks = getCollection(Feedback);
 exports.admins = getCollection(Admin);
+exports.appConfigs = getCollection(AppConfig);

@@ -9,6 +9,7 @@ const Income = require("../models/Income.model");
 const Saving = require("../models/Saving.model");
 const Subscription = require("../models/Subscription.model");
 const Feedback = require("../models/Feedback.model");
+const AppConfig = require("../models/AppConfig.model");
 
 const generateAdminToken = (admin) => {
   return jwt.sign(
@@ -94,6 +95,7 @@ exports.dashboard = async (req, res) => {
       savings,
       subscriptions,
       feedbacks,
+      appConfigs,
       incomeTotals,
       expenseTotals,
       savingsTotals,
@@ -110,12 +112,35 @@ exports.dashboard = async (req, res) => {
       Saving.countDocuments(),
       Subscription.countDocuments(),
       Feedback.countDocuments(),
+      AppConfig.countDocuments(),
 
-      Income.aggregate([{ $group: { _id: null, total: { $sum: "$amount" } } }]),
-      Expense.aggregate([
-        { $group: { _id: null, total: { $sum: "$amount" } } },
+      Income.aggregate([
+        {
+          $group: {
+            _id: null,
+            total: { $sum: "$amount" },
+          },
+        },
       ]),
-      Saving.aggregate([{ $group: { _id: null, total: { $sum: "$amount" } } }]),
+
+      Expense.aggregate([
+        {
+          $group: {
+            _id: null,
+            total: { $sum: "$amount" },
+          },
+        },
+      ]),
+
+      Saving.aggregate([
+        {
+          $group: {
+            _id: null,
+            total: { $sum: "$amount" },
+          },
+        },
+      ]),
+
       Expense.aggregate([
         {
           $group: {
@@ -124,24 +149,55 @@ exports.dashboard = async (req, res) => {
             count: { $sum: 1 },
           },
         },
-        { $project: { _id: 0, category: "$_id", amount: 1, count: 1 } },
-        { $sort: { amount: -1 } },
+        {
+          $project: {
+            _id: 0,
+            category: "$_id",
+            amount: 1,
+            count: 1,
+          },
+        },
+        {
+          $sort: {
+            amount: -1,
+          },
+        },
       ]),
-      Expense.find({}).sort({ date: -1, createdAt: -1 }).limit(5).lean(),
-      Income.find({}).sort({ date: -1, createdAt: -1 }).limit(5).lean(),
+
+      Expense.find({})
+        .sort({
+          date: -1,
+          createdAt: -1,
+        })
+        .limit(5)
+        .lean(),
+
+      Income.find({})
+        .sort({
+          date: -1,
+          createdAt: -1,
+        })
+        .limit(5)
+        .lean(),
+
       Feedback.find({})
         .populate("user", "name email")
-        .sort({ createdAt: -1 })
+        .sort({
+          createdAt: -1,
+        })
         .limit(5)
         .lean(),
     ]);
 
     const totalIncome = incomeTotals[0]?.total || 0;
+
     const totalExpenses = expenseTotals[0]?.total || 0;
+
     const totalSavings = savingsTotals[0]?.total || 0;
 
     res.json({
       success: true,
+
       data: {
         overview: {
           admins,
@@ -152,21 +208,28 @@ exports.dashboard = async (req, res) => {
           savings,
           subscriptions,
           feedbacks,
+          appConfigs,
         },
+
         financial: {
           totalIncome,
           totalExpenses,
           totalSavings,
           balance: totalIncome - totalExpenses,
         },
+
         expenseByCategory,
+
         recentExpenses,
+
         recentIncome,
+
         recentFeedback,
       },
     });
   } catch (error) {
     console.error("Admin dashboard error:", error);
+
     res.status(500).json({
       success: false,
       message: "Failed to load admin dashboard",

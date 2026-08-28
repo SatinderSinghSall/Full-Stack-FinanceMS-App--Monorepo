@@ -5,6 +5,7 @@ const router = express.Router();
 const adminController = require("../controllers/admin.controller");
 const adminDataController = require("../controllers/adminData.controller");
 const adminAuth = require("../middlewares/admin.middleware");
+const appConfigController = require("../controllers/adminAppConfig.controller");
 
 // Authentication
 router.post("/auth/login", adminController.login);
@@ -56,5 +57,12 @@ router.get("/admins", adminDataController.admins);
 router.get("/admins/:id", adminDataController.getAdmin);
 router.put("/admins/:id", adminDataController.updateAdmin);
 router.delete("/admins/:id", adminDataController.deleteAdmin);
+
+// App Configuration
+router.get("/app-config", appConfigController.getAppConfig);
+router.get("/appconfigs/:id", adminDataController.getAppConfig);
+router.put("/app-config", appConfigController.updateAppConfig);
+
+router.get("/appconfigs", adminDataController.appConfigs);
 
 module.exports = router;
