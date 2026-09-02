@@ -6,6 +6,7 @@ const adminController = require("../controllers/admin.controller");
 const adminDataController = require("../controllers/adminData.controller");
 const adminAuth = require("../middlewares/admin.middleware");
 const appConfigController = require("../controllers/adminAppConfig.controller");
+const announcementController = require("../controllers/announcement.controller");
 
 // Authentication
 router.post("/auth/login", adminController.login);
@@ -64,5 +65,12 @@ router.get("/appconfigs/:id", adminDataController.getAppConfig);
 router.put("/app-config", appConfigController.updateAppConfig);
 
 router.get("/appconfigs", adminDataController.appConfigs);
+
+// Announcements
+router.get("/announcements", announcementController.getAnnouncements);
+router.get("/announcements/:id", announcementController.getAnnouncement);
+router.post("/announcements", announcementController.createAnnouncement);
+router.put("/announcements/:id", announcementController.updateAnnouncement);
+router.delete("/announcements/:id", announcementController.deleteAnnouncement);
 
 module.exports = router;
