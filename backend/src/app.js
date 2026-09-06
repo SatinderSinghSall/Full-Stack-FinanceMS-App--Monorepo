@@ -15,6 +15,7 @@ const adminRoutes = require("./routes/admin.routes");
 const feedbackRoute = require("./routes/feedback.routes.js");
 const announcementRoutes = require("./routes/announcement.routes");
 const financialTipRoutes = require("./routes/financialTip.routes");
+const maintenanceRoutes = require("./routes/maintenance.routes");
 
 const app = express();
 
@@ -34,6 +35,7 @@ app.use("/api/admin", adminRoutes);
 app.use("/api/feedback", feedbackRoute);
 app.use("/api/announcements", announcementRoutes);
 app.use("/api/financial-tips", financialTipRoutes);
+app.use("/api/maintenance", maintenanceRoutes);
 
 app.use(errorHandler);
 

@@ -8,6 +8,7 @@ const adminAuth = require("../middlewares/admin.middleware");
 const appConfigController = require("../controllers/adminAppConfig.controller");
 const announcementController = require("../controllers/announcement.controller");
 const financialTipController = require("../controllers/financialTip.controller");
+const maintenanceController = require("../controllers/maintenance.controller");
 
 // Authentication
 router.post("/auth/login", adminController.login);
@@ -81,5 +82,9 @@ router.get("/financial-tips/:id", financialTipController.getFinancialTip);
 router.post("/financial-tips", financialTipController.createFinancialTip);
 router.put("/financial-tips/:id", financialTipController.updateFinancialTip);
 router.delete("/financial-tips/:id", financialTipController.deleteFinancialTip);
+
+// Maintenance
+router.get("/maintenance", maintenanceController.getMaintenance);
+router.put("/maintenance", maintenanceController.updateMaintenance);
 
 module.exports = router;

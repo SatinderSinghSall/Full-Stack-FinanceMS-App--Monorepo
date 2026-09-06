@@ -12,6 +12,7 @@ const Feedback = require("../models/Feedback.model");
 const AppConfig = require("../models/AppConfig.model");
 const Announcement = require("../models/Announcement.model");
 const FinancialTip = require("../models/FinancialTip.model");
+const Maintenance = require("../models/Maintenance.model");
 
 const generateAdminToken = (admin) => {
   return jwt.sign(
@@ -100,6 +101,7 @@ exports.dashboard = async (req, res) => {
       appConfigs,
       announcements,
       financialTips,
+      maintenance,
       incomeTotals,
       expenseTotals,
       savingsTotals,
@@ -119,6 +121,7 @@ exports.dashboard = async (req, res) => {
       AppConfig.countDocuments(),
       Announcement.countDocuments(),
       FinancialTip.countDocuments(),
+      Maintenance.countDocuments(),
 
       Income.aggregate([
         {
@@ -217,6 +220,7 @@ exports.dashboard = async (req, res) => {
           appConfigs,
           announcements,
           financialTips,
+          maintenance,
         },
 
         financial: {
