@@ -9,15 +9,14 @@ const appConfigController = require("../controllers/adminAppConfig.controller");
 const announcementController = require("../controllers/announcement.controller");
 const financialTipController = require("../controllers/financialTip.controller");
 const maintenanceController = require("../controllers/maintenance.controller");
+const emailCampaignController = require("../controllers/emailCampaign.controller");
 
 // Authentication
 router.post("/auth/login", adminController.login);
 
 // Protected routes
 router.use(adminAuth);
-
 router.get("/auth/me", adminController.me);
-
 router.get("/dashboard", adminController.dashboard);
 
 // Collections
@@ -86,5 +85,19 @@ router.delete("/financial-tips/:id", financialTipController.deleteFinancialTip);
 // Maintenance
 router.get("/maintenance", maintenanceController.getMaintenance);
 router.put("/maintenance", maintenanceController.updateMaintenance);
+
+// Email Campaigns
+router.post("/email-campaigns", emailCampaignController.createEmailCampaign);
+router.get("/email-campaigns", emailCampaignController.getEmailCampaigns);
+router.get("/email-campaigns/:id", emailCampaignController.getEmailCampaign);
+router.put("/email-campaigns/:id", emailCampaignController.updateEmailCampaign);
+router.delete(
+  "/email-campaigns/:id",
+  emailCampaignController.deleteEmailCampaign,
+);
+router.post(
+  "/email-campaigns/:id/send",
+  emailCampaignController.sendEmailCampaign,
+);
 
 module.exports = router;
