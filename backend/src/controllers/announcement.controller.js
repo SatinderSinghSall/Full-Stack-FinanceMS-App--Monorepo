@@ -1,4 +1,7 @@
 const Announcement = require("../models/Announcement.model");
+const {
+  sendAnnouncementToAllUsers,
+} = require("../services/announcementEmail.service");
 
 /**
  * GET /api/admin/announcements
@@ -190,6 +193,15 @@ const createAnnouncement = async (req, res) => {
       startDate: parsedStartDate,
       endDate: parsedEndDate,
       action: validatedAction,
+    });
+
+    // Send announcement email to all registered users
+    sendAnnouncementToAllUsers({
+      title: announcement.title,
+      message: announcement.message,
+      type: announcement.type,
+    }).catch((error) => {
+      console.error("Announcement email sending failed:", error);
     });
 
     return res.status(201).json({

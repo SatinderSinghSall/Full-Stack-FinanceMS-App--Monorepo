@@ -1,4 +1,7 @@
 const FinancialTip = require("../models/FinancialTip.model");
+const {
+  sendFinancialTipToAllUsers,
+} = require("../services/financialTipEmail.service");
 
 /**
  * GET /api/admin/financial-tips
@@ -253,6 +256,17 @@ const createFinancialTip = async (req, res) => {
       startDate: parsedStartDate,
       endDate: parsedEndDate,
       action: validatedAction,
+    });
+
+    // Send Financial Tip email to all registered users
+    sendFinancialTipToAllUsers({
+      title: financialTip.title,
+      shortDescription: financialTip.shortDescription,
+      content: financialTip.content,
+      category: financialTip.category,
+      type: financialTip.type,
+    }).catch((error) => {
+      console.error("Financial tip email sending failed:", error);
     });
 
     return res.status(201).json({
