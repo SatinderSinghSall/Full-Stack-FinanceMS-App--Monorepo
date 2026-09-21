@@ -84,27 +84,34 @@ const sendAnnouncementToAllUsers = async ({
   const appUrl =
     "https://play.google.com/store/apps/details?id=com.satinder_singh_sall.mobileapp";
 
-  const results = await Promise.allSettled(
-    users.map(async (user) => {
-      const userName = user.name?.trim() || "FinTrack User";
+  const results = [];
 
-      const safeUserName = escapeHtml(userName);
+  const batchSize = 5;
 
-      const formattedMessage = formatAnnouncementMessage(message);
+  for (let i = 0; i < users.length; i += batchSize) {
+    const batch = users.slice(i, i + batchSize);
 
-      const emailData = {
-        from:
-          process.env.EMAIL_FROM ||
-          `"FinTrack" <${process.env.NODEMAILER_EMAIL}>`,
+    const batchResults = await Promise.allSettled(
+      batch.map(async (user) => {
+        const userName = user.name?.trim() || "FinTrack User";
 
-        to: user.email,
+        const safeUserName = escapeHtml(userName);
 
-        subject: `New Announcement from FinTrack — ${title}`,
+        const formattedMessage = formatAnnouncementMessage(message);
 
-        /*
-         * Plain-text fallback
-         */
-        text: `
+        const emailData = {
+          from:
+            process.env.EMAIL_FROM ||
+            `"FinTrack" <${process.env.NODEMAILER_EMAIL}>`,
+
+          to: user.email,
+
+          subject: `New Announcement from FinTrack — ${title}`,
+
+          /*
+           * Plain-text fallback
+           */
+          text: `
 Hello ${userName},
 
 A new announcement has been published in FinTrack.
@@ -174,10 +181,10 @@ https://satinderpoetry.com
 All rights reserved.
         `.trim(),
 
-        /*
-         * HTML EMAIL
-         */
-        html: `
+          /*
+           * HTML EMAIL
+           */
+          html: `
 <!DOCTYPE html>
 <html lang="en">
 
@@ -1070,31 +1077,39 @@ All rights reserved.
 
 </html>
         `.trim(),
-      };
+        };
 
-      const response = await fetch(
-        `${process.env.EMAIL_SERVICE_URL}/api/send`,
-        {
-          method: "POST",
-          headers: {
-            "Content-Type": "application/json",
-            "x-email-service-secret": process.env.EMAIL_SERVICE_SECRET,
+        const response = await fetch(
+          `${process.env.EMAIL_SERVICE_URL}/api/send`,
+          {
+            method: "POST",
+            headers: {
+              "Content-Type": "application/json",
+              "x-email-service-secret": process.env.EMAIL_SERVICE_SECRET,
+            },
+            body: JSON.stringify(emailData),
           },
-          body: JSON.stringify(emailData),
-        },
-      );
-
-      const result = await response.json();
-
-      if (!response.ok || !result.success) {
-        throw new Error(
-          result.message || `Email service returned ${response.status}`,
         );
-      }
 
-      return result;
-    }),
-  );
+        const result = await response.json();
+
+        if (!response.ok || !result.success) {
+          throw new Error(
+            result.message || `Email service returned ${response.status}`,
+          );
+        }
+
+        return result;
+      }),
+    );
+
+    results.push(...batchResults);
+
+    // Give Gmail a short break between batches
+    if (i + batchSize < users.length) {
+      await new Promise((resolve) => setTimeout(resolve, 1000));
+    }
+  }
 
   const sent = results.filter((result) => result.status === "fulfilled").length;
 
