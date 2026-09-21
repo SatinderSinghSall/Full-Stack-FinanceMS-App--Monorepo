@@ -1,13 +1,4 @@
-const nodemailer = require("nodemailer");
 const User = require("../models/User.model");
-
-const transporter = nodemailer.createTransport({
-  service: "gmail",
-  auth: {
-    user: process.env.NODEMAILER_EMAIL,
-    pass: process.env.NODEMAILER_PASSWORD,
-  },
-});
 
 /**
  * Escape user/admin-provided content before inserting it into HTML.
@@ -94,14 +85,14 @@ const sendAnnouncementToAllUsers = async ({
     "https://play.google.com/store/apps/details?id=com.satinder_singh_sall.mobileapp";
 
   const results = await Promise.allSettled(
-    users.map((user) => {
+    users.map(async (user) => {
       const userName = user.name?.trim() || "FinTrack User";
 
       const safeUserName = escapeHtml(userName);
 
       const formattedMessage = formatAnnouncementMessage(message);
 
-      return transporter.sendMail({
+      const emailData = {
         from:
           process.env.EMAIL_FROM ||
           `"FinTrack" <${process.env.NODEMAILER_EMAIL}>`,
@@ -1079,7 +1070,29 @@ All rights reserved.
 
 </html>
         `.trim(),
-      });
+      };
+
+      const response = await fetch(
+        `${process.env.EMAIL_SERVICE_URL}/api/send`,
+        {
+          method: "POST",
+          headers: {
+            "Content-Type": "application/json",
+            "x-email-service-secret": process.env.EMAIL_SERVICE_SECRET,
+          },
+          body: JSON.stringify(emailData),
+        },
+      );
+
+      const result = await response.json();
+
+      if (!response.ok || !result.success) {
+        throw new Error(
+          result.message || `Email service returned ${response.status}`,
+        );
+      }
+
+      return result;
     }),
   );
 
