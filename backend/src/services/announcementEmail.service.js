@@ -1,7 +1,7 @@
 const nodemailer = require("nodemailer");
 const User = require("../models/User.model");
 const { transporter } = require("../utils/mailer");
-const { config } = require("../../config/config");
+const { config } = require("../config/config");
 
 /**
  * Escape user/admin-provided content before inserting it into HTML.
