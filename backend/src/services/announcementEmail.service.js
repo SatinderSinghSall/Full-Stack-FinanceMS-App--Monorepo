@@ -1,7 +1,13 @@
 const nodemailer = require("nodemailer");
 const User = require("../models/User.model");
-const { transporter } = require("../utils/mailer");
-const { config } = require("../config/config");
+
+const transporter = nodemailer.createTransport({
+  service: "gmail",
+  auth: {
+    user: process.env.NODEMAILER_EMAIL,
+    pass: process.env.NODEMAILER_PASSWORD,
+  },
+});
 
 /**
  * Escape user/admin-provided content before inserting it into HTML.
@@ -96,7 +102,9 @@ const sendAnnouncementToAllUsers = async ({
       const formattedMessage = formatAnnouncementMessage(message);
 
       return transporter.sendMail({
-        from: `"FinTrack" <${config.emailUsername}>`,
+        from:
+          process.env.EMAIL_FROM ||
+          `"FinTrack" <${process.env.NODEMAILER_EMAIL}>`,
 
         to: user.email,
 
