@@ -1,4 +1,5 @@
 const User = require("../models/User.model");
+const { sendBatchEmails } = require("./email.service");
 
 /**
  * Escape user/admin-provided content before inserting it into HTML.
@@ -91,7 +92,10 @@ const sendAnnouncementToAllUsers = async ({
   for (let i = 0; i < users.length; i += batchSize) {
     const batch = users.slice(i, i + batchSize);
 
-    const batchResults = await Promise.allSettled(
+    /*
+     * Build all emails in this batch first.
+     */
+    const batchEmails = await Promise.all(
       batch.map(async (user) => {
         const userName = user.name?.trim() || "FinTrack User";
 
@@ -185,229 +189,49 @@ All rights reserved.
            * HTML EMAIL
            */
           html: `
-<!DOCTYPE html>
-<html lang="en">
+            <!DOCTYPE html>
+            <html lang="en">
 
-<head>
+            <head>
 
-  <meta charset="UTF-8" />
+              <meta charset="UTF-8" />
 
-  <meta
-    name="viewport"
-    content="width=device-width, initial-scale=1.0"
-  />
+              <meta
+                name="viewport"
+                content="width=device-width, initial-scale=1.0"
+              />
 
-  <title>${safeTitle} | FinTrack</title>
+              <title>${safeTitle} | FinTrack</title>
 
-</head>
-
-
-<body
-  style="
-    margin:0;
-    padding:0;
-    background:#f3f4f6;
-    font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',Roboto,Helvetica,Arial,sans-serif;
-    color:#111827;
-  "
->
-
-  <!-- Preheader -->
-
-  <div
-    style="
-      display:none;
-      max-height:0;
-      overflow:hidden;
-      opacity:0;
-      color:transparent;
-    "
-  >
-    A new announcement is available in your FinTrack app.
-  </div>
+            </head>
 
 
-  <!-- Main Background -->
-
-  <table
-    role="presentation"
-    width="100%"
-    cellpadding="0"
-    cellspacing="0"
-    border="0"
-    style="background:#f3f4f6;"
-  >
-
-    <tr>
-
-      <td
-        align="center"
-        style="padding:40px 16px;"
-      >
-
-
-        <!-- ========================================= -->
-        <!-- EMAIL CONTAINER -->
-        <!-- ========================================= -->
-
-        <table
-          role="presentation"
-          width="100%"
-          cellpadding="0"
-          cellspacing="0"
-          border="0"
-          style="
-            max-width:640px;
-            background:#ffffff;
-            border-radius:14px;
-            overflow:hidden;
-            border:1px solid #e5e7eb;
-          "
-        >
-
-
-          <!-- ========================================= -->
-          <!-- HEADER -->
-          <!-- ========================================= -->
-
-          <tr>
-
-            <td
+            <body
               style="
-                background:#111827;
-                padding:28px 34px;
+                margin:0;
+                padding:0;
+                background:#f3f4f6;
+                font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',Roboto,Helvetica,Arial,sans-serif;
+                color:#111827;
               "
             >
 
-              <div
-                style="
-                  font-size:25px;
-                  line-height:32px;
-                  font-weight:700;
-                  color:#ffffff;
-                  letter-spacing:-0.5px;
-                "
-              >
-                FinTrack
-              </div>
-
+              <!-- Preheader -->
 
               <div
                 style="
-                  margin-top:5px;
-                  font-size:13px;
-                  line-height:20px;
-                  color:#9ca3af;
+                  display:none;
+                  max-height:0;
+                  overflow:hidden;
+                  opacity:0;
+                  color:transparent;
                 "
               >
-                Your personal finance companion
-              </div>
-
-            </td>
-
-          </tr>
-
-
-          <!-- ========================================= -->
-          <!-- INTRODUCTION -->
-          <!-- ========================================= -->
-
-          <tr>
-
-            <td
-              style="
-                padding:40px 40px 20px;
-              "
-            >
-
-              <p
-                style="
-                  margin:0 0 10px;
-                  font-size:16px;
-                  line-height:26px;
-                  color:#374151;
-                "
-              >${safeUserName},</p>
-
-
-              <h1
-                style="
-                  margin:0 0 14px;
-                  font-size:28px;
-                  line-height:36px;
-                  font-weight:700;
-                  letter-spacing:-0.5px;
-                  color:#111827;
-                "
-              >
-                A new announcement is available
-              </h1>
-
-
-              <p
-                style="
-                  margin:0;
-                  font-size:15px;
-                  line-height:26px;
-                  color:#6b7280;
-                "
-              >
-                We have published a new announcement in FinTrack
-                that may be important or useful to you.
-              </p>
-
-            </td>
-
-          </tr>
-
-
-          <!-- ========================================= -->
-          <!-- ANNOUNCEMENT -->
-          <!-- ========================================= -->
-
-          <tr>
-
-            <td
-              style="
-                padding:10px 40px 10px;
-              "
-            >
-
-
-              <!-- Announcement Type -->
-
-              <div
-                style="
-                  margin-bottom:12px;
-                  font-size:11px;
-                  line-height:18px;
-                  font-weight:700;
-                  letter-spacing:1.2px;
-                  text-transform:uppercase;
-                  color:#2563eb;
-                "
-              >
-                ${announcementLabel}
+                A new announcement is available in your FinTrack app.
               </div>
 
 
-              <!-- Announcement Title -->
-
-              <h2
-                style="
-                  margin:0 0 18px;
-                  font-size:24px;
-                  line-height:32px;
-                  font-weight:700;
-                  color:#111827;
-                  letter-spacing:-0.3px;
-                "
-              >
-                ${safeTitle}
-              </h2>
-
-
-              <!-- Announcement Message -->
+              <!-- Main Background -->
 
               <table
                 role="presentation"
@@ -415,106 +239,837 @@ All rights reserved.
                 cellpadding="0"
                 cellspacing="0"
                 border="0"
-                style="
-                  background:#f8fafc;
-                  border:1px solid #e5e7eb;
-                  border-radius:10px;
-                "
-              >
-
-                <tr>
-
-                  <td
-                    style="
-                      padding:24px;
-                    "
-                  >${formattedMessage}</td>
-
-                </tr>
-
-              </table>
-
-            </td>
-
-          </tr>
-
-
-          <!-- ========================================= -->
-          <!-- CTA -->
-          <!-- ========================================= -->
-
-          <tr>
-
-            <td
-              align="center"
-              style="
-                padding:30px 40px 35px;
-              "
-            >
-
-              <p
-                style="
-                  margin:0 0 8px;
-                  font-size:18px;
-                  line-height:26px;
-                  font-weight:700;
-                  color:#111827;
-                "
-              >
-                View the full announcement in FinTrack
-              </p>
-
-
-              <p
-                style="
-                  margin:0 0 22px;
-                  font-size:14px;
-                  line-height:23px;
-                  color:#6b7280;
-                "
-              >
-                Open the FinTrack app to view the complete
-                announcement and any additional details.
-              </p>
-
-
-              <!-- CTA Button -->
-
-              <table
-                role="presentation"
-                cellpadding="0"
-                cellspacing="0"
-                border="0"
-                align="center"
+                style="background:#f3f4f6;"
               >
 
                 <tr>
 
                   <td
                     align="center"
-                    style="
-                      border-radius:8px;
-                      background:#2563eb;
-                    "
+                    style="padding:40px 16px;"
                   >
 
-                    <a
-                      href="${appUrl}"
-                      target="_blank"
-                      rel="noopener noreferrer"
+
+                    <!-- ========================================= -->
+                    <!-- EMAIL CONTAINER -->
+                    <!-- ========================================= -->
+
+                    <table
+                      role="presentation"
+                      width="100%"
+                      cellpadding="0"
+                      cellspacing="0"
+                      border="0"
                       style="
-                        display:inline-block;
-                        padding:14px 26px;
-                        font-size:15px;
-                        line-height:20px;
-                        font-weight:700;
-                        color:#ffffff;
-                        text-decoration:none;
-                        border-radius:8px;
+                        max-width:640px;
+                        background:#ffffff;
+                        border-radius:14px;
+                        overflow:hidden;
+                        border:1px solid #e5e7eb;
                       "
                     >
-                      Open FinTrack App
-                    </a>
+
+
+                      <!-- ========================================= -->
+                      <!-- HEADER -->
+                      <!-- ========================================= -->
+
+                      <tr>
+
+                        <td
+                          style="
+                            background:#111827;
+                            padding:28px 34px;
+                          "
+                        >
+
+                          <div
+                            style="
+                              font-size:25px;
+                              line-height:32px;
+                              font-weight:700;
+                              color:#ffffff;
+                              letter-spacing:-0.5px;
+                            "
+                          >
+                            FinTrack
+                          </div>
+
+
+                          <div
+                            style="
+                              margin-top:5px;
+                              font-size:13px;
+                              line-height:20px;
+                              color:#9ca3af;
+                            "
+                          >
+                            Your personal finance companion
+                          </div>
+
+                        </td>
+
+                      </tr>
+
+
+                      <!-- ========================================= -->
+                      <!-- INTRODUCTION -->
+                      <!-- ========================================= -->
+
+                      <tr>
+
+                        <td
+                          style="
+                            padding:40px 40px 20px;
+                          "
+                        >
+
+                          <p
+                            style="
+                              margin:0 0 10px;
+                              font-size:16px;
+                              line-height:26px;
+                              color:#374151;
+                            "
+                          >${safeUserName},</p>
+
+
+                          <h1
+                            style="
+                              margin:0 0 14px;
+                              font-size:28px;
+                              line-height:36px;
+                              font-weight:700;
+                              letter-spacing:-0.5px;
+                              color:#111827;
+                            "
+                          >
+                            A new announcement is available
+                          </h1>
+
+
+                          <p
+                            style="
+                              margin:0;
+                              font-size:15px;
+                              line-height:26px;
+                              color:#6b7280;
+                            "
+                          >
+                            We have published a new announcement in FinTrack
+                            that may be important or useful to you.
+                          </p>
+
+                        </td>
+
+                      </tr>
+
+
+                      <!-- ========================================= -->
+                      <!-- ANNOUNCEMENT -->
+                      <!-- ========================================= -->
+
+                      <tr>
+
+                        <td
+                          style="
+                            padding:10px 40px 10px;
+                          "
+                        >
+
+
+                          <!-- Announcement Type -->
+
+                          <div
+                            style="
+                              margin-bottom:12px;
+                              font-size:11px;
+                              line-height:18px;
+                              font-weight:700;
+                              letter-spacing:1.2px;
+                              text-transform:uppercase;
+                              color:#2563eb;
+                            "
+                          >
+                            ${announcementLabel}
+                          </div>
+
+
+                          <!-- Announcement Title -->
+
+                          <h2
+                            style="
+                              margin:0 0 18px;
+                              font-size:24px;
+                              line-height:32px;
+                              font-weight:700;
+                              color:#111827;
+                              letter-spacing:-0.3px;
+                            "
+                          >
+                            ${safeTitle}
+                          </h2>
+
+
+                          <!-- Announcement Message -->
+
+                          <table
+                            role="presentation"
+                            width="100%"
+                            cellpadding="0"
+                            cellspacing="0"
+                            border="0"
+                            style="
+                              background:#f8fafc;
+                              border:1px solid #e5e7eb;
+                              border-radius:10px;
+                            "
+                          >
+
+                            <tr>
+
+                              <td
+                                style="
+                                  padding:24px;
+                                "
+                              >${formattedMessage}</td>
+
+                            </tr>
+
+                          </table>
+
+                        </td>
+
+                      </tr>
+
+
+                      <!-- ========================================= -->
+                      <!-- CTA -->
+                      <!-- ========================================= -->
+
+                      <tr>
+
+                        <td
+                          align="center"
+                          style="
+                            padding:30px 40px 35px;
+                          "
+                        >
+
+                          <p
+                            style="
+                              margin:0 0 8px;
+                              font-size:18px;
+                              line-height:26px;
+                              font-weight:700;
+                              color:#111827;
+                            "
+                          >
+                            View the full announcement in FinTrack
+                          </p>
+
+
+                          <p
+                            style="
+                              margin:0 0 22px;
+                              font-size:14px;
+                              line-height:23px;
+                              color:#6b7280;
+                            "
+                          >
+                            Open the FinTrack app to view the complete
+                            announcement and any additional details.
+                          </p>
+
+
+                          <!-- CTA Button -->
+
+                          <table
+                            role="presentation"
+                            cellpadding="0"
+                            cellspacing="0"
+                            border="0"
+                            align="center"
+                          >
+
+                            <tr>
+
+                              <td
+                                align="center"
+                                style="
+                                  border-radius:8px;
+                                  background:#2563eb;
+                                "
+                              >
+
+                                <a
+                                  href="${appUrl}"
+                                  target="_blank"
+                                  rel="noopener noreferrer"
+                                  style="
+                                    display:inline-block;
+                                    padding:14px 26px;
+                                    font-size:15px;
+                                    line-height:20px;
+                                    font-weight:700;
+                                    color:#ffffff;
+                                    text-decoration:none;
+                                    border-radius:8px;
+                                  "
+                                >
+                                  Open FinTrack App
+                                </a>
+
+                              </td>
+
+                            </tr>
+
+                          </table>
+
+
+                          <p
+                            style="
+                              margin:16px 0 0;
+                              font-size:11px;
+                              line-height:18px;
+                              color:#9ca3af;
+                            "
+                          >
+                            Tap the button above to open FinTrack on
+                            Google Play.
+                          </p>
+
+                        </td>
+
+                      </tr>
+
+
+                      <!-- ========================================= -->
+                      <!-- HOW TO CHECK ANNOUNCEMENTS -->
+                      <!-- ========================================= -->
+
+                      <tr>
+
+                        <td
+                          style="
+                            padding:0 40px 34px;
+                          "
+                        >
+
+                          <table
+                            role="presentation"
+                            width="100%"
+                            cellpadding="0"
+                            cellspacing="0"
+                            border="0"
+                            style="
+                              background:#ffffff;
+                              border:1px solid #e5e7eb;
+                              border-radius:12px;
+                            "
+                          >
+
+                            <tr>
+
+                              <td
+                                style="
+                                  padding:26px;
+                                "
+                              >
+
+                                <h3
+                                  style="
+                                    margin:0 0 8px;
+                                    font-size:18px;
+                                    line-height:26px;
+                                    font-weight:700;
+                                    color:#111827;
+                                  "
+                                >
+                                  How to check Announcements in the
+                                  FinTrack App
+                                </h3>
+
+
+                                <p
+                                  style="
+                                    margin:0 0 22px;
+                                    font-size:13px;
+                                    line-height:21px;
+                                    color:#6b7280;
+                                  "
+                                >
+                                  You can access your announcements from
+                                  two convenient places inside the app.
+                                </p>
+
+
+                                <!-- Dashboard -->
+
+                                <p
+                                  style="
+                                    margin:0 0 8px;
+                                    font-size:14px;
+                                    line-height:22px;
+                                    font-weight:700;
+                                    color:#111827;
+                                  "
+                                >
+                                  Option 1 — Dashboard
+                                </p>
+
+
+                                <ol
+                                  style="
+                                    margin:0 0 22px;
+                                    padding-left:20px;
+                                    font-size:13px;
+                                    line-height:25px;
+                                    color:#4b5563;
+                                  "
+                                >
+
+                                  <li>
+                                    Open the <strong>FinTrack</strong> app.
+                                  </li>
+
+                                  <li>
+                                    Sign in to your account.
+                                  </li>
+
+                                  <li>
+                                    Go to your <strong>Dashboard</strong>.
+                                  </li>
+
+                                  <li>
+                                    Scroll down a little.
+                                  </li>
+
+                                  <li>
+                                    Look for the
+                                    <strong>Announcements</strong>
+                                    section.
+                                  </li>
+
+                                </ol>
+
+
+                                <!-- Sidebar -->
+
+                                <p
+                                  style="
+                                    margin:0 0 8px;
+                                    font-size:14px;
+                                    line-height:22px;
+                                    font-weight:700;
+                                    color:#111827;
+                                  "
+                                >
+                                  Option 2 — Sidebar
+                                </p>
+
+
+                                <ol
+                                  style="
+                                    margin:0;
+                                    padding-left:20px;
+                                    font-size:13px;
+                                    line-height:25px;
+                                    color:#4b5563;
+                                  "
+                                >
+
+                                  <li>
+                                    Open the FinTrack
+                                    <strong>sidebar/menu</strong>.
+                                  </li>
+
+                                  <li>
+                                    Select
+                                    <strong>Announcements</strong>.
+                                  </li>
+
+                                  <li>
+                                    Browse your available announcements
+                                    there.
+                                  </li>
+
+                                </ol>
+
+                              </td>
+
+                            </tr>
+
+                          </table>
+
+                        </td>
+
+                      </tr>
+
+
+                      <!-- ========================================= -->
+                      <!-- EXISTING EMAIL NOTICE -->
+                      <!-- ========================================= -->
+
+                      <tr>
+
+                        <td
+                          style="
+                            padding:0 40px;
+                          "
+                        >
+
+                          <p
+                            style="
+                              margin:0;
+                              font-size:12px;
+                              line-height:20px;
+                              color:#6b7280;
+                            "
+                          >
+                            If you've already received this email or
+                            completed the requested action, please ignore
+                            this email.
+                          </p>
+
+
+                          <p
+                            style="
+                              margin:14px 0 0;
+                              font-size:14px;
+                              line-height:22px;
+                              color:#374151;
+                            "
+                          >
+                            Thank you for using FinTrack! 💙
+                          </p>
+
+
+                          <p
+                            style="
+                              margin:10px 0 0;
+                              font-size:14px;
+                              line-height:22px;
+                              font-weight:600;
+                              color:#111827;
+                            "
+                          >
+                            — The FinTrack Team
+                          </p>
+
+                        </td>
+
+                      </tr>
+
+
+                      <!-- ========================================= -->
+                      <!-- FOOTER DIVIDER -->
+                      <!-- ========================================= -->
+
+                      <tr>
+
+                        <td
+                          style="
+                            padding:0 40px;
+                          "
+                        >
+
+                          <div
+                            style="
+                              height:1px;
+                              background:#e5e7eb;
+                              margin:28px 0 24px;
+                            "
+                          ></div>
+
+                        </td>
+
+                      </tr>
+
+
+                      <!-- ========================================= -->
+                      <!-- CONTACT SUPPORT -->
+                      <!-- ========================================= -->
+
+                      <tr>
+
+                        <td
+                          style="
+                            padding:0 40px;
+                          "
+                        >
+
+                          <div
+                            style="
+                              padding:18px;
+                              background:#f8fafc;
+                              border:1px solid #e5e7eb;
+                              border-radius:10px;
+                            "
+                          >
+
+                            <p
+                              style="
+                                margin:0 0 8px;
+                                font-size:14px;
+                                font-weight:bold;
+                                color:#111827;
+                              "
+                            >
+                              Need to reach us?
+                            </p>
+
+
+                            <p
+                              style="
+                                margin:0;
+                                font-size:13px;
+                                line-height:1.7;
+                                color:#4b5563;
+                              "
+                            >
+                              If you would like to contact us, send us a
+                              message directly through the FinTrack app.
+                            </p>
+
+
+                            <p
+                              style="
+                                margin:10px 0 0;
+                                font-size:13px;
+                                line-height:1.7;
+                                color:#4b5563;
+                              "
+                            >
+                              You can reach us from:
+                            </p>
+
+
+                            <ul
+                              style="
+                                margin:8px 0 0;
+                                padding-left:20px;
+                                font-size:13px;
+                                line-height:1.8;
+                                color:#4b5563;
+                              "
+                            >
+
+                              <li>
+                                <strong>Sidebar</strong>
+                                → Support &amp; Feedback
+                              </li>
+
+                              <li>
+                                <strong>Profile</strong>
+                                → Support &amp; Feedback
+                              </li>
+
+                              <li>
+                                <strong>Settings</strong>
+                                → Support &amp; Feedback
+                              </li>
+
+                            </ul>
+
+
+                            <p
+                              style="
+                                margin:12px 0 0;
+                                font-size:13px;
+                                line-height:1.7;
+                                color:#4b5563;
+                              "
+                            >
+                              We typically reply within
+                              <strong>2–5 hours</strong>.
+                            </p>
+
+                          </div>
+
+                        </td>
+
+                      </tr>
+
+
+                      <!-- ========================================= -->
+                      <!-- WHY YOU RECEIVED THIS EMAIL -->
+                      <!-- ========================================= -->
+
+                      <tr>
+
+                        <td
+                          style="
+                            padding:22px 40px 0;
+                          "
+                        >
+
+                          <p
+                            style="
+                              margin:0;
+                              font-size:11px;
+                              line-height:1.7;
+                              color:#9ca3af;
+                              text-align:center;
+                            "
+                          >
+                            You are receiving this email because you are
+                            registered with the FinTrack app.
+                          </p>
+
+                        </td>
+
+                      </tr>
+
+
+                      <!-- ========================================= -->
+                      <!-- FOUNDER -->
+                      <!-- ========================================= -->
+
+                      <tr>
+
+                        <td
+                          style="
+                            padding:24px 40px 0;
+                          "
+                        >
+
+                          <div
+                            style="
+                              padding-top:22px;
+                              border-top:1px solid #f0f0f0;
+                              text-align:center;
+                            "
+                          >
+
+                            <p
+                              style="
+                                margin:0;
+                                font-size:11px;
+                                font-weight:bold;
+                                text-transform:uppercase;
+                                letter-spacing:1px;
+                                color:#9ca3af;
+                              "
+                            >
+                              Founder &amp; Curator
+                            </p>
+
+
+                            <p
+                              style="
+                                margin:6px 0 0;
+                                font-size:15px;
+                                font-weight:bold;
+                                color:#111827;
+                              "
+                            >
+                              Satinder Singh Sall
+                            </p>
+
+
+                            <p
+                              style="
+                                margin:12px 0 0;
+                                font-size:12px;
+                                line-height:1.7;
+                              "
+                            >
+
+                              <a
+                                href="https://satinder-portfolio.vercel.app/"
+                                target="_blank"
+                                rel="noopener noreferrer"
+                                style="
+                                  color:#2563eb;
+                                  text-decoration:none;
+                                  font-weight:600;
+                                "
+                              >
+                                Visit Portfolio
+                              </a>
+
+                            </p>
+
+
+                            <p
+                              style="
+                                margin:5px 0 0;
+                                font-size:12px;
+                                line-height:1.7;
+                              "
+                            >
+
+                              <a
+                                href="https://satinderpoetry.com"
+                                target="_blank"
+                                rel="noopener noreferrer"
+                                style="
+                                  color:#2563eb;
+                                  text-decoration:none;
+                                  font-weight:600;
+                                "
+                              >
+                                Visit Satinder Poetry
+                              </a>
+
+                            </p>
+
+                          </div>
+
+                        </td>
+
+                      </tr>
+
+
+                      <!-- ========================================= -->
+                      <!-- COPYRIGHT -->
+                      <!-- ========================================= -->
+
+                      <tr>
+
+                        <td
+                          style="
+                            padding:24px 40px 30px;
+                          "
+                        >
+
+                          <p
+                            style="
+                              margin:0;
+                              font-size:10px;
+                              line-height:1.6;
+                              color:#b0b7c3;
+                              text-align:center;
+                            "
+                          >
+                            © ${new Date().getFullYear()} FinTrack.
+                            All rights reserved.
+                          </p>
+
+                        </td>
+
+                      </tr>
+
+
+                    </table>
+
+
+                    <!-- ========================================= -->
+                    <!-- OUTSIDE EMAIL -->
+                    <!-- ========================================= -->
+
+                    <p
+                      style="
+                        margin:18px 0 0;
+                        font-size:10px;
+                        line-height:18px;
+                        color:#9ca3af;
+                      "
+                    >
+                      FinTrack — Manage your money. Understand your future.
+                    </p>
+
 
                   </td>
 
@@ -522,601 +1077,71 @@ All rights reserved.
 
               </table>
 
+            </body>
 
-              <p
-                style="
-                  margin:16px 0 0;
-                  font-size:11px;
-                  line-height:18px;
-                  color:#9ca3af;
-                "
-              >
-                Tap the button above to open FinTrack on
-                Google Play.
-              </p>
-
-            </td>
-
-          </tr>
-
-
-          <!-- ========================================= -->
-          <!-- HOW TO CHECK ANNOUNCEMENTS -->
-          <!-- ========================================= -->
-
-          <tr>
-
-            <td
-              style="
-                padding:0 40px 34px;
-              "
-            >
-
-              <table
-                role="presentation"
-                width="100%"
-                cellpadding="0"
-                cellspacing="0"
-                border="0"
-                style="
-                  background:#ffffff;
-                  border:1px solid #e5e7eb;
-                  border-radius:12px;
-                "
-              >
-
-                <tr>
-
-                  <td
-                    style="
-                      padding:26px;
-                    "
-                  >
-
-                    <h3
-                      style="
-                        margin:0 0 8px;
-                        font-size:18px;
-                        line-height:26px;
-                        font-weight:700;
-                        color:#111827;
-                      "
-                    >
-                      How to check Announcements in the
-                      FinTrack App
-                    </h3>
-
-
-                    <p
-                      style="
-                        margin:0 0 22px;
-                        font-size:13px;
-                        line-height:21px;
-                        color:#6b7280;
-                      "
-                    >
-                      You can access your announcements from
-                      two convenient places inside the app.
-                    </p>
-
-
-                    <!-- Dashboard -->
-
-                    <p
-                      style="
-                        margin:0 0 8px;
-                        font-size:14px;
-                        line-height:22px;
-                        font-weight:700;
-                        color:#111827;
-                      "
-                    >
-                      Option 1 — Dashboard
-                    </p>
-
-
-                    <ol
-                      style="
-                        margin:0 0 22px;
-                        padding-left:20px;
-                        font-size:13px;
-                        line-height:25px;
-                        color:#4b5563;
-                      "
-                    >
-
-                      <li>
-                        Open the <strong>FinTrack</strong> app.
-                      </li>
-
-                      <li>
-                        Sign in to your account.
-                      </li>
-
-                      <li>
-                        Go to your <strong>Dashboard</strong>.
-                      </li>
-
-                      <li>
-                        Scroll down a little.
-                      </li>
-
-                      <li>
-                        Look for the
-                        <strong>Announcements</strong>
-                        section.
-                      </li>
-
-                    </ol>
-
-
-                    <!-- Sidebar -->
-
-                    <p
-                      style="
-                        margin:0 0 8px;
-                        font-size:14px;
-                        line-height:22px;
-                        font-weight:700;
-                        color:#111827;
-                      "
-                    >
-                      Option 2 — Sidebar
-                    </p>
-
-
-                    <ol
-                      style="
-                        margin:0;
-                        padding-left:20px;
-                        font-size:13px;
-                        line-height:25px;
-                        color:#4b5563;
-                      "
-                    >
-
-                      <li>
-                        Open the FinTrack
-                        <strong>sidebar/menu</strong>.
-                      </li>
-
-                      <li>
-                        Select
-                        <strong>Announcements</strong>.
-                      </li>
-
-                      <li>
-                        Browse your available announcements
-                        there.
-                      </li>
-
-                    </ol>
-
-                  </td>
-
-                </tr>
-
-              </table>
-
-            </td>
-
-          </tr>
-
-
-          <!-- ========================================= -->
-          <!-- EXISTING EMAIL NOTICE -->
-          <!-- ========================================= -->
-
-          <tr>
-
-            <td
-              style="
-                padding:0 40px;
-              "
-            >
-
-              <p
-                style="
-                  margin:0;
-                  font-size:12px;
-                  line-height:20px;
-                  color:#6b7280;
-                "
-              >
-                If you've already received this email or
-                completed the requested action, please ignore
-                this email.
-              </p>
-
-
-              <p
-                style="
-                  margin:14px 0 0;
-                  font-size:14px;
-                  line-height:22px;
-                  color:#374151;
-                "
-              >
-                Thank you for using FinTrack! 💙
-              </p>
-
-
-              <p
-                style="
-                  margin:10px 0 0;
-                  font-size:14px;
-                  line-height:22px;
-                  font-weight:600;
-                  color:#111827;
-                "
-              >
-                — The FinTrack Team
-              </p>
-
-            </td>
-
-          </tr>
-
-
-          <!-- ========================================= -->
-          <!-- FOOTER DIVIDER -->
-          <!-- ========================================= -->
-
-          <tr>
-
-            <td
-              style="
-                padding:0 40px;
-              "
-            >
-
-              <div
-                style="
-                  height:1px;
-                  background:#e5e7eb;
-                  margin:28px 0 24px;
-                "
-              ></div>
-
-            </td>
-
-          </tr>
-
-
-          <!-- ========================================= -->
-          <!-- CONTACT SUPPORT -->
-          <!-- ========================================= -->
-
-          <tr>
-
-            <td
-              style="
-                padding:0 40px;
-              "
-            >
-
-              <div
-                style="
-                  padding:18px;
-                  background:#f8fafc;
-                  border:1px solid #e5e7eb;
-                  border-radius:10px;
-                "
-              >
-
-                <p
-                  style="
-                    margin:0 0 8px;
-                    font-size:14px;
-                    font-weight:bold;
-                    color:#111827;
-                  "
-                >
-                  Need to reach us?
-                </p>
-
-
-                <p
-                  style="
-                    margin:0;
-                    font-size:13px;
-                    line-height:1.7;
-                    color:#4b5563;
-                  "
-                >
-                  If you would like to contact us, send us a
-                  message directly through the FinTrack app.
-                </p>
-
-
-                <p
-                  style="
-                    margin:10px 0 0;
-                    font-size:13px;
-                    line-height:1.7;
-                    color:#4b5563;
-                  "
-                >
-                  You can reach us from:
-                </p>
-
-
-                <ul
-                  style="
-                    margin:8px 0 0;
-                    padding-left:20px;
-                    font-size:13px;
-                    line-height:1.8;
-                    color:#4b5563;
-                  "
-                >
-
-                  <li>
-                    <strong>Sidebar</strong>
-                    → Support &amp; Feedback
-                  </li>
-
-                  <li>
-                    <strong>Profile</strong>
-                    → Support &amp; Feedback
-                  </li>
-
-                  <li>
-                    <strong>Settings</strong>
-                    → Support &amp; Feedback
-                  </li>
-
-                </ul>
-
-
-                <p
-                  style="
-                    margin:12px 0 0;
-                    font-size:13px;
-                    line-height:1.7;
-                    color:#4b5563;
-                  "
-                >
-                  We typically reply within
-                  <strong>2–5 hours</strong>.
-                </p>
-
-              </div>
-
-            </td>
-
-          </tr>
-
-
-          <!-- ========================================= -->
-          <!-- WHY YOU RECEIVED THIS EMAIL -->
-          <!-- ========================================= -->
-
-          <tr>
-
-            <td
-              style="
-                padding:22px 40px 0;
-              "
-            >
-
-              <p
-                style="
-                  margin:0;
-                  font-size:11px;
-                  line-height:1.7;
-                  color:#9ca3af;
-                  text-align:center;
-                "
-              >
-                You are receiving this email because you are
-                registered with the FinTrack app.
-              </p>
-
-            </td>
-
-          </tr>
-
-
-          <!-- ========================================= -->
-          <!-- FOUNDER -->
-          <!-- ========================================= -->
-
-          <tr>
-
-            <td
-              style="
-                padding:24px 40px 0;
-              "
-            >
-
-              <div
-                style="
-                  padding-top:22px;
-                  border-top:1px solid #f0f0f0;
-                  text-align:center;
-                "
-              >
-
-                <p
-                  style="
-                    margin:0;
-                    font-size:11px;
-                    font-weight:bold;
-                    text-transform:uppercase;
-                    letter-spacing:1px;
-                    color:#9ca3af;
-                  "
-                >
-                  Founder &amp; Curator
-                </p>
-
-
-                <p
-                  style="
-                    margin:6px 0 0;
-                    font-size:15px;
-                    font-weight:bold;
-                    color:#111827;
-                  "
-                >
-                  Satinder Singh Sall
-                </p>
-
-
-                <p
-                  style="
-                    margin:12px 0 0;
-                    font-size:12px;
-                    line-height:1.7;
-                  "
-                >
-
-                  <a
-                    href="https://satinder-portfolio.vercel.app/"
-                    target="_blank"
-                    rel="noopener noreferrer"
-                    style="
-                      color:#2563eb;
-                      text-decoration:none;
-                      font-weight:600;
-                    "
-                  >
-                    Visit Portfolio
-                  </a>
-
-                </p>
-
-
-                <p
-                  style="
-                    margin:5px 0 0;
-                    font-size:12px;
-                    line-height:1.7;
-                  "
-                >
-
-                  <a
-                    href="https://satinderpoetry.com"
-                    target="_blank"
-                    rel="noopener noreferrer"
-                    style="
-                      color:#2563eb;
-                      text-decoration:none;
-                      font-weight:600;
-                    "
-                  >
-                    Visit Satinder Poetry
-                  </a>
-
-                </p>
-
-              </div>
-
-            </td>
-
-          </tr>
-
-
-          <!-- ========================================= -->
-          <!-- COPYRIGHT -->
-          <!-- ========================================= -->
-
-          <tr>
-
-            <td
-              style="
-                padding:24px 40px 30px;
-              "
-            >
-
-              <p
-                style="
-                  margin:0;
-                  font-size:10px;
-                  line-height:1.6;
-                  color:#b0b7c3;
-                  text-align:center;
-                "
-              >
-                © ${new Date().getFullYear()} FinTrack.
-                All rights reserved.
-              </p>
-
-            </td>
-
-          </tr>
-
-
-        </table>
-
-
-        <!-- ========================================= -->
-        <!-- OUTSIDE EMAIL -->
-        <!-- ========================================= -->
-
-        <p
-          style="
-            margin:18px 0 0;
-            font-size:10px;
-            line-height:18px;
-            color:#9ca3af;
-          "
-        >
-          FinTrack — Manage your money. Understand your future.
-        </p>
-
-
-      </td>
-
-    </tr>
-
-  </table>
-
-</body>
-
-</html>
+            </html>
         `.trim(),
         };
 
-        const response = await fetch(
-          `${process.env.EMAIL_SERVICE_URL}/api/send`,
-          {
-            method: "POST",
-            headers: {
-              "Content-Type": "application/json",
-              "x-email-service-secret": process.env.EMAIL_SERVICE_SECRET,
-            },
-            body: JSON.stringify(emailData),
-          },
-        );
-
-        const result = await response.json();
-
-        if (!response.ok || !result.success) {
-          throw new Error(
-            result.message || `Email service returned ${response.status}`,
-          );
-        }
-
-        return result;
+        return emailData;
       }),
     );
 
-    results.push(...batchResults);
+    /*
+     * ============================================================
+     * SEND THE WHOLE BATCH THROUGH RESEND
+     * ============================================================
+     */
+    try {
+      const result = await sendBatchEmails(
+        batchEmails,
+        `announcement-${Date.now()}-${i}`,
+      );
 
-    // Give Gmail a short break between batches
+      if (result?.error) {
+        throw new Error(result.error.message || "Resend batch failed");
+      }
+
+      batchEmails.forEach(() => {
+        results.push({
+          status: "fulfilled",
+        });
+      });
+    } catch (error) {
+      /*
+       * If the batch fails, mark every email in this batch as failed.
+       */
+      batchEmails.forEach(() => {
+        results.push({
+          status: "rejected",
+          reason: error,
+        });
+      });
+    }
+
+    /*
+     * Give Resend a short break between batches.
+     */
     if (i + batchSize < users.length) {
       await new Promise((resolve) => setTimeout(resolve, 1000));
     }
   }
 
+  /*
+   * Count successful emails.
+   */
   const sent = results.filter((result) => result.status === "fulfilled").length;
 
+  /*
+   * Count failed emails.
+   */
   const failed = results.filter(
     (result) => result.status === "rejected",
   ).length;
 
+  /*
+   * Log individual failures.
+   */
   if (failed > 0) {
     results.forEach((result, index) => {
       if (result.status === "rejected") {
