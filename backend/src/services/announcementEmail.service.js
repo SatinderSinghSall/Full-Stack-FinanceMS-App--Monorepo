@@ -1,16 +1,7 @@
 const nodemailer = require("nodemailer");
 const User = require("../models/User.model");
-
-const transporter = nodemailer.createTransport({
-  host: "smtp.gmail.com",
-  port: 465,
-  secure: true,
-  family: 4,
-  auth: {
-    user: process.env.NODEMAILER_EMAIL,
-    pass: process.env.NODEMAILER_PASSWORD,
-  },
-});
+const { transporter } = require("../utils/mailer");
+const { config } = require("../../config/config");
 
 /**
  * Escape user/admin-provided content before inserting it into HTML.
@@ -105,9 +96,7 @@ const sendAnnouncementToAllUsers = async ({
       const formattedMessage = formatAnnouncementMessage(message);
 
       return transporter.sendMail({
-        from:
-          process.env.EMAIL_FROM ||
-          `"FinTrack" <${process.env.NODEMAILER_EMAIL}>`,
+        from: `"FinTrack" <${config.emailUsername}>`,
 
         to: user.email,
 
