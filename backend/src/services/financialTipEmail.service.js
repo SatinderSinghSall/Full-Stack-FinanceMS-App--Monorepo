@@ -106,7 +106,7 @@ const sendFinancialTipToAllUsers = async ({
   /*
    * Resend batch API supports up to 100 emails per request.
    */
-  const batchSize = 100;
+  const batchSize = 5;
 
   const results = [];
 
